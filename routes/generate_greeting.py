@@ -4,16 +4,14 @@ greeting_bp = Blueprint("greeting_bp", __name__, url_prefix="/api")
 
 @greeting_bp.route("/generate-greeting", methods=["POST"])
 def generate_greeting():
-    # defer app import to break circular dependency
-    import backend.app as app
+    import app as app  # changed
 
     try:
         data = request.json or {}
         ctype = data.get("type", "video")
 
         if not app.user_info:
-            default = (f"Hi! How can I help you with this {ctype}?"
-                       if ctype=="video" else f"Hi! How can I help you with this article?")
+            default = (f"Hi! How can I help you with this {ctype}?")
             return jsonify({"greeting": default})
 
         ui = app.user_info
@@ -31,17 +29,15 @@ Requirements:
 4. Keep it concise and welcoming
 5. If you don't know how to say hello in their language, use English
 6. Everything else apart from the greeting is in English
-
 Generate the greeting now:"""
 
         resp = app.client.chat.completions.create(
             model="gpt-4o",
-            messages=[{"role":"user","content":prompt}],
+            messages=[{"role": "user", "content": prompt}],
             max_tokens=100,
             temperature=0.7
         )
         return jsonify({"greeting": resp.choices[0].message.content.strip()})
     except Exception as e:
         print(f"Error generating greeting: {e}")
-        default = "Hi! How can I help you with this video?"
-        return jsonify({"greeting": default})
+        return jsonify({"greeting": "Hi! How can I help you with this video?"})

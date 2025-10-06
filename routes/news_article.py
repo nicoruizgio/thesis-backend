@@ -5,7 +5,7 @@ news_article_bp = Blueprint("news_article_bp", __name__, url_prefix="/api")
 
 @news_article_bp.route("/news-article", methods=["POST"])
 def extract_news_article():
-    import backend.app as app
+    import app as app  # changed
 
     try:
         url = (request.json or {}).get("url", "")

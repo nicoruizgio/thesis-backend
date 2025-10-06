@@ -4,7 +4,7 @@ user_info_bp = Blueprint("user_info_bp", __name__, url_prefix="/api")
 
 @user_info_bp.route("/user-info", methods=["POST"])
 def save_user_info():
-    import backend.app as app
+    import app as app
 
     try:
         data = request.json or {}

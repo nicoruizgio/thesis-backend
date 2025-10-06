@@ -1,1 +1,1 @@
-from app import app  # Because current working dir is backend/
+from app import app  # unchanged, OK for gunicorn: gunicorn wsgi:app

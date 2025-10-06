@@ -6,9 +6,7 @@ transcript_bp = Blueprint("transcript_bp", __name__, url_prefix="/api")
 
 @transcript_bp.route("/transcript/<video_id>")
 def get_transcript(video_id):
-    # defer your cache import too
-    from backend.app import transcript_cache
-
+    from app import transcript_cache  # changed
     try:
         segments = YouTubeTranscriptApi.get_transcript(video_id, languages=["en"])
         text = " ".join(s["text"] for s in segments)

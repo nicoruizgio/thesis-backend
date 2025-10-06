@@ -1,8 +1,7 @@
-
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from backend.app import app
+from app import app  # changed
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

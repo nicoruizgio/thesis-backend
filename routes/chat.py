@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound, VideoUnavailable
-from ..prompts import system_prompt_video, system_prompt_article, search_agent_prompt
+from prompts import system_prompt_video, system_prompt_article, search_agent_prompt
 from collections import defaultdict
 from langchain.memory import ConversationBufferMemory
 from langchain_openai import ChatOpenAI
@@ -43,30 +43,25 @@ _memories = defaultdict(lambda: ConversationBufferMemory(
 
 @chat_bp.route("/chat", methods=["POST"])
 def chat():
-    import backend.app as app
+    import app as app
     data = request.json or {}
     user_message = data.get("message", "")
     content_type = data.get("type", "video")
     video_id = data.get("video_id", "")
-    article_data = data.get("article", {})  # existing
+    article_data = data.get("article", {})
     participant_id = data.get("participant_id") or "anonymous"
-
-    # Pick memory for this participant
     memory = _memories[participant_id]
 
     try:
         if content_type == "article":
-            # Use article data from request if provided, otherwise fallback to stored
             if article_data:
                 title = article_data.get("title", "") or ""
-                authors = ", ".join(article_data.get("authors", [])) if isinstance(article_data.get("authors"), list) else (article_data.get("authors", "") or "Unknown author")
+                authors = ", ".join(article_data.get("authors", [])) if isinstance(article_data.get("authors", []), list) else (article_data.get("authors") or "Unknown author")
                 article_body = article_data.get("text", "") or ""
                 meta_line = f"TITLE: {title}\nAUTHORS: {authors}\n"
                 article_text = f"{meta_line}\n{article_body}"
             else:
-                # Fallback to stored article_data
                 article_text = ""
-                title = ""
                 if app.article_data:
                     title = app.article_data.get("title", "") or ""
                     authors = ", ".join(app.article_data.get("authors", [])) or "Unknown author"
@@ -74,28 +69,19 @@ def chat():
                     meta_line = f"TITLE: {title}\nAUTHORS: {authors}\n"
                     article_text = f"{meta_line}\n{article_body}"
 
-            # Include user info if present
             user_ctx = ""
             if app.user_info:
                 user_ctx = "USER INFO:\n" + "\n".join(f"- {k}: {v}" for k, v in app.user_info.items() if v) + "\n"
 
-            # Compose the single user input to the agent
             user_input = (
                 f"{user_ctx}ARTICLE:\n{article_text or 'NO ARTICLE CONTENT AVAILABLE'}\n\n"
                 f"USER QUESTION:\n{user_message}"
             )
 
-            # Create a fresh executor each call with this participant's memory
-            executor = AgentExecutor(
-                agent=_agent,
-                tools=_tools,
-                verbose=True,
-                memory=memory
-            )
+            executor = AgentExecutor(agent=_agent, tools=_tools, verbose=True, memory=memory)
             result = executor.invoke({"input": user_input})
             reply = result.get("output", "").strip() or "Sorry, I could not generate an answer."
         else:
-            # VIDEO path: optionally also use memory
             system_message = system_prompt_video
             meta = app.get_metadata(video_id)
             if meta:
@@ -110,23 +96,14 @@ def chat():
                     transcript = ""
             system_message += f"\n\nTranscript: {transcript or 'No transcript available.'}"
 
-            # Manually add prior history (memory.chat_memory.messages) to context
             history_text = ""
             for m in memory.chat_memory.messages:
                 role = "User" if m.type == "human" else "Assistant"
                 history_text += f"{role}: {m.content}\n"
 
-            composed = (
-                f"{system_message}\n\nConversation so far:\n{history_text}\n"
-                f"User: {user_message}"
-            )
+            composed = f"{system_message}\n\nConversation so far:\n{history_text}\nUser: {user_message}"
 
-            executor = AgentExecutor(
-                agent=_agent,
-                tools=_tools,
-                verbose=True,
-                memory=memory
-            )
+            executor = AgentExecutor(agent=_agent, tools=_tools, verbose=True, memory=memory)
             result = executor.invoke({"input": composed})
             reply = result.get("output", "").strip() or "Sorry, I could not generate an answer."
 
