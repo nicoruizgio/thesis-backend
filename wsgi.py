@@ -1,0 +1,1 @@
+from app import app  # Because current working dir is backend/
