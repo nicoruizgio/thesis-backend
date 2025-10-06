@@ -12,4 +12,4 @@ langchain-tavily==0.2.11
 tiktoken==0.11.0
 requests==2.32.3
 gunicorn==23.0.0
-lxml==6.0.0
+lxml[html_clean]==5.2.1
