@@ -14,10 +14,11 @@ if os.environ.get("FLASK_ENV") != "production":
 print(f"API key found: {'Yes' if os.environ.get('OPENAI_API_KEY') else 'No'}")
 
 try:
-    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    _api_key = os.environ.get("OPENAI_API_KEY")
+    client = OpenAI(api_key=_api_key) if _api_key else None
 except Exception as e:
     print(f"Error initializing OpenAI client: {e}")
-    sys.exit(1)
+    client = None
 
 # Global in‑memory state
 transcript_cache = {}
